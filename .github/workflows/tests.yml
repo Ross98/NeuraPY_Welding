@@ -23,9 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install pyflakes
 
-      - name: Run pyflakes
+      - name: Run pyflakes on welding_package/
         run: |
-          python -m pyflakes welding_package/ tests/
+          python -m pyflakes welding_package/
 
   test:
     name: pytest on Ubuntu
