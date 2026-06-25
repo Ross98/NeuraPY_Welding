@@ -15,6 +15,10 @@ Supported processes:
   - CobotSeamTrack:     Collaborative seam tracking via force control
   - StitchWeld:         Stitch / intermittent welding
 
+Welding power source communication:
+  - EIPWeldingLink:     Ethernet/IP scanner/adapter for Fronius /
+                        Lincoln / Miller / OTC welders
+
 Typical usage
 -------------
     from neurapy.robot import Robot
@@ -52,14 +56,6 @@ from .eip import (
     EIPBackedWeldingController,
     WeldStatusBit,
 )
-from .socket_vision import (
-    VisionSocketLink,
-    VisionSocketConfig,
-    VisionProtocol,
-    VisionMsgType,
-    VisionMode,
-    VisionRole,
-)
 
 __all__ = [
     "WeldingController",
@@ -78,12 +74,6 @@ __all__ = [
     "EIPJobMode",
     "EIPBackedWeldingController",
     "WeldStatusBit",
-    "VisionSocketLink",
-    "VisionSocketConfig",
-    "VisionProtocol",
-    "VisionMsgType",
-    "VisionMode",
-    "VisionRole",
 ]
 
 __version__ = "1.0.0"
