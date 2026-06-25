@@ -106,9 +106,11 @@ class WeldingProcess(ABC):
     @staticmethod
     def laser(start_pose, end_pose, *,
               laser_power: float = 2000.0,
+              laser_power_scaling: float = 0.001,
               scan_freq: float = 100.0,
               speed: float = 0.02) -> "LaserWeld":
-        return LaserWeld(start_pose, end_pose, laser_power, scan_freq,
+        return LaserWeld(start_pose, end_pose, laser_power,
+                         laser_power_scaling, scan_freq,
                          MotionProfile(speed=speed))
 
     @staticmethod
@@ -245,10 +247,10 @@ class CircularWeld(WeldingProcess):
             "blending_mode": self.motion.blending_mode,
             "enable_blending": True,
             "target_pose": self.poses,
-            "weaving": self.weave.pattern != "sine",  # 圆周常不开摆动
+            "weaving": self.weave.pattern == "circle",  # 圆周焊仅在用户显式设 circle 模式时开摆动
             "current_joint_angles": r.get_current_joint_angles(),
         }
-        if self.weave.pattern != "sine":
+        if self.weave.pattern == "circle":
             w = self.weave.to_api_dict()
             w["start_target_pose_number"] = 1
             w["end_target_pose_number"] = len(self.poses)
@@ -363,17 +365,30 @@ class LaserWeld(WeldingProcess):
     """
     激光焊接：运动 + 连续激光输出 (通过模拟量/IO 触发激光器)。
     提供摆动以增加熔池宽度。
+
+    参数:
+        laser_power:        激光功率 (W), 如 2000W
+        laser_power_scaling: 模拟量标度系数。
+                             模拟量输出 AO_LASER_POWER 的输出值 =
+                             laser_power * laser_power_scaling.
+                             常见配置:
+                             - 0-10V 系统, 10000W 满量程 → 0.001
+                             - 4-20mA 系统, 5000W 满量程  → 0.004
+        scan_freq:          振镜扫描频率 (Hz)
     """
     name = "LaserWeld"
 
     def __init__(self, start_pose, end_pose,
-                 laser_power: float = 2000.0, scan_freq: float = 100.0,
+                 laser_power: float = 2000.0,
+                 laser_power_scaling: float = 0.001,
+                 scan_freq: float = 100.0,
                  motion: Optional[MotionProfile] = None) -> None:
         super().__init__(motion or MotionProfile(speed=0.02))
         self.start_pose = list(start_pose)
         self.end_pose = list(end_pose)
-        self.laser_power = laser_power    # W
-        self.scan_freq = scan_freq        # Hz, 振镜扫描频率
+        self.laser_power = laser_power           # W
+        self.laser_power_scaling = laser_power_scaling
+        self.scan_freq = scan_freq
 
     def execute(self, controller: WeldingController, *, dry_run: bool = False) -> None:
         r = controller.r
@@ -388,11 +403,12 @@ class LaserWeld(WeldingProcess):
             pass
         time.sleep(0.5)
 
-        # 2) 设置激光功率 (模拟量输出)
+        # 2) 设置激光功率 (模拟量输出, 按标度系数转换)
         if not dry_run:
+            analog_val = self.laser_power * self.laser_power_scaling
             try:
                 r.io("set", io_name="AO_LASER_POWER",
-                     target_value=self.laser_power)
+                     target_value=analog_val)
             except Exception:
                 logger.debug("Analog output not configured for laser power")
 
@@ -537,6 +553,11 @@ class StitchWeld(WeldingProcess):
                  stitch_length: float = 0.02, gap_length: float = 0.01,
                  motion: Optional[MotionProfile] = None) -> None:
         super().__init__(motion or MotionProfile(speed=0.01))
+        if stitch_length <= 0 or gap_length < 0:
+            raise ValueError(
+                f"stitch_length({stitch_length}) must be >0, "
+                f"gap_length({gap_length}) must be >=0"
+            )
         self.poses = poses
         self.stitch_length = stitch_length
         self.gap_length = gap_length

@@ -203,7 +203,7 @@ def test_TC_F_105_laser_weld(wc, mock_robot, sample_poses):
                 return c[2].get("target_value")
         return None
     assert any_set("DO_LASER_GAS", True) is True
-    assert any_set("AO_LASER_POWER", 1500.0) is True
+    assert any_set("AO_LASER_POWER", 1.5) is True  # 1500W * 0.001 = 1.5V
     assert any_set("DO_LASER_ON", True) is True
     # 关激光 + 功率归零
     assert last_set("DO_LASER_ON") is False
@@ -704,3 +704,26 @@ def test_TC_PERF_002_multi_pass_sleeps(wc, mock_robot, sample_poses, fast_sleep)
     # 第 2、3 次循环前各睡 2.0s
     interpass = [s for s in fast_sleep if abs(s - 2.0) < 1e-6]
     assert len(interpass) == 2
+
+
+# ===================================================================== #
+# TC-F-109: CircularWeld 默认不开摆动
+# ===================================================================== #
+def test_TC_F_109_circular_no_weave_by_default(wc, mock_robot, sample_poses):
+    from welding_package import WeldingProcess
+    from welding_package.parameters import WeaveParameters
+    proc = WeldingProcess.circular(sample_poses[:3])
+    wc.run(proc)
+    feas = [c for c in mock_robot.calls if c[0] == "check_circular_feasibility"]
+    assert len(feas) == 1
+    assert feas[0][2]["weaving"] is False  # 默认不开摆动
+
+def test_TC_F_110_circular_weave_circle_mode(wc, mock_robot, sample_poses):
+    from welding_package import WeldingProcess
+    from welding_package.parameters import WeaveParameters
+    proc = WeldingProcess.circular(sample_poses[:3], weave=WeaveParameters(pattern="circle", radius=0.003))
+    wc.run(proc)
+    feas = [c for c in mock_robot.calls if c[0] == "check_circular_feasibility"]
+    assert len(feas) == 1
+    assert feas[0][2]["weaving"] is True  # circle 模式下开启
+    assert feas[0][2]["weaving_parameters"][0]["pattern"] == "circle"

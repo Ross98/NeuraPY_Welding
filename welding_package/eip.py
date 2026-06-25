@@ -80,12 +80,15 @@ class EIPWeldingTagMap:
       - 字段名以 dout_ 开头 = Scanner 写 Adapter (O2T, 机器人 → 焊机)
       - 字段名以 din_ 开头  = Scanner 读 Adapter (T2O, 焊机 → 机器人)
 
-    默认布局 (Fronius 风格) — 共 5 个连续 DBLOUT 元素:
+    默认布局 (Fronius 风格) — 共 5 个连续 DBLOUT + 3 个 BOOL INTOUT:
         idx 0: dout_job        (INT, O2T)
         idx 1: dout_current    (REAL, O2T)
         idx 2: dout_voltage    (REAL, O2T)
         idx 3: dout_wire_feed  (REAL, O2T)
         idx 4: dout_gas_flow   (REAL, O2T)
+        idx 5: dout_arc_on     (BOOL, O2T)
+        idx 6: dout_wire_feed_on (BOOL, O2T)
+        idx 7: dout_gas_on     (BOOL, O2T)
 
     常见 Fronius 配置示例:
 
@@ -114,10 +117,10 @@ class EIPWeldingTagMap:
     dout_wire_feed_3: str = "DOUT_wire_feed"   # idx 3, REAL
     dout_gas_flow_4: str = "DOUT_gas_flow"     # idx 4, REAL
 
-    # BOOL 单独使用 INTOUT 位掩码 (EIP 惯例)
-    dout_arc_on: str = "DOUT_arc_on"
-    dout_wire_feed_on: str = "DOUT_wire_feed_on"
-    dout_gas_on: str = "DOUT_gas_on"
+    # BOOL 使用 INTOUT 位寻址, 按顺序分配索引 5/6/7
+    dout_arc_on_5: str = "DOUT_arc_on"             # idx 5, BOOL
+    dout_wire_feed_on_6: str = "DOUT_wire_feed_on"  # idx 6, BOOL
+    dout_gas_on_7: str = "DOUT_gas_on"              # idx 7, BOOL
 
     # ---- T2O (Adapter → Scanner, 机器人读焊机) ----
     din_status: str = "DINT_weld_status"           # INT
@@ -267,9 +270,8 @@ class EIPWeldingLink:
         """Scanner 向 Adapter 的 BOOL 标签 (INTOUT 位) 写 0/1."""
         idx = self._resolve_dblout_index(tag)
         if idx < 0:
-            # BOOL 字段通常没有 _N 后缀, 用 0 索引 (用户应通过
-            # EIPWeldingTagMap 的扩展机制提供 BOOL 索引)
-            idx = 0
+            logger.debug("EIP _set_bool_tag: %s has no register index", tag)
+            return False
         try:
             n = self.r.set_intout_register(idx, idx, 1 if value else 0)
             return n == 1
@@ -285,10 +287,11 @@ class EIPWeldingLink:
           2) tag 名本身以 _N 结尾 → 解析 N
           3) 否则返回 -1 (表示无索引, 调用方应放弃)
         """
-        # 1) 反查已知字段
+        # 1) 反查已知字段 (DBLOUT + BOOL)
         t = self.cfg.tags
         for fname in ("dout_job_0", "dout_current_1", "dout_voltage_2",
-                      "dout_wire_feed_3", "dout_gas_flow_4"):
+                      "dout_wire_feed_3", "dout_gas_flow_4",
+                      "dout_arc_on_5", "dout_wire_feed_on_6", "dout_gas_on_7"):
             if getattr(t, fname) == tag:
                 return t.write_index(fname)
         # 2) 解析 tag 自身
@@ -411,7 +414,7 @@ class EIPWeldingLink:
         timeout = timeout or self.cfg.scan_timeout
 
         # 1) 保护气
-        if not self._set_bool_tag(t.dout_gas_on, True):
+        if not self._set_bool_tag(t.dout_gas_on_7, True):
             logger.error("Failed to open gas")
             return False
 
@@ -419,8 +422,8 @@ class EIPWeldingLink:
         time.sleep(0.5)
 
         # 3) 送丝 + 起弧
-        self._set_bool_tag(t.dout_wire_feed_on, True)
-        if not self._set_bool_tag(t.dout_arc_on, True):
+        self._set_bool_tag(t.dout_wire_feed_on_6, True)
+        if not self._set_bool_tag(t.dout_arc_on_5, True):
             logger.error("Failed to set arc_on")
             return False
 
@@ -446,13 +449,13 @@ class EIPWeldingLink:
             return
         t = self.cfg.tags
         # 1) 停弧
-        self._set_bool_tag(t.dout_arc_on, False)
+        self._set_bool_tag(t.dout_arc_on_5, False)
         time.sleep(0.3)
         # 2) 停丝
-        self._set_bool_tag(t.dout_wire_feed_on, False)
+        self._set_bool_tag(t.dout_wire_feed_on_6, False)
         # 3) 滞后停气
         time.sleep(post_flow)
-        self._set_bool_tag(t.dout_gas_on, False)
+        self._set_bool_tag(t.dout_gas_on_7, False)
         self._arc_on = False
         logger.info("EIP arc off")
 

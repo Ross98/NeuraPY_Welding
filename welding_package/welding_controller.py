@@ -188,7 +188,8 @@ class WeldingController:
                 self.r.pause()
                 return False
         except Exception:
-            pass
+            logger.warning("Force wrench read failed (safety fallback)")
+            return False
         return True
 
     # ------------------------------------------------------------------
@@ -202,7 +203,12 @@ class WeldingController:
         logger.info("Running process: %s", type(process).__name__)
         self._errors_before = self.r.get_errors()
         try:
+            # 焊接前安全检查
+            self._check_force()
+            self._check_tcp_speed()
             process.execute(self)
+            # 焊接后安全检查
+            self._check_force()
             if blocking:
                 self.r.wait_motion_finished()
         except Exception as e:
