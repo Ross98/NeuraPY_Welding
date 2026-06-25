@@ -5,7 +5,7 @@
 数据类集合，封装各焊接方式的工艺参数。所有单位遵循国际标准 (SI)。
 """
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 
 
 @dataclass

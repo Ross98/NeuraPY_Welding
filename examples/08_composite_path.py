@@ -7,7 +7,7 @@ Example 8: Composite weld path (复合焊缝)
 """
 import time
 from neurapy.robot import Robot
-from welding_package import WeldingController, WeldingMode, WeldingProcess
+from welding_package import WeldingController
 from welding_package.parameters import WeaveParameters
 
 

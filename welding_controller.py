@@ -20,11 +20,14 @@ import time
 import logging
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Callable, Any
+from typing import Optional, List, Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .processes import WeldingProcess
 
 from neurapy.robot import Robot
 
-from .parameters import ArcParameters, SeamTrackParameters, WeaveParameters
+from .parameters import ArcParameters
 
 logger = logging.getLogger(__name__)
 

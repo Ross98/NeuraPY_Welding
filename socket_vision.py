@@ -40,13 +40,12 @@ from __future__ import annotations
 
 import json
 import socket
-import struct
 import logging
 import threading
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, List, Dict, Any, Callable, Tuple
+from typing import Optional, List, Dict, Any, Callable
 
 logger = logging.getLogger(__name__)
 

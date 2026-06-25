@@ -17,14 +17,14 @@ import math
 import logging
 import copy
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple, Sequence
+from typing import List, Optional, Sequence
 
 from .parameters import (
     WeaveParameters, MotionProfile, ArcParameters, SeamTrackParameters,
 )
 from .welding_controller import WeldingController
 from ._interp import (
-    interpolate_linear, cumdist, point_at, require_sciy,
+    interpolate_linear, cumdist, point_at,
 )
 
 logger = logging.getLogger(__name__)

@@ -10,7 +10,7 @@ Example 6: Cobot Seam Tracking (协作力控焊缝跟踪)
 """
 import time
 from neurapy.robot import Robot
-from welding_package import WeldingController, WeldingMode, WeldingProcess
+from welding_package import WeldingController, WeldingProcess
 from welding_package.parameters import SeamTrackParameters
 
 

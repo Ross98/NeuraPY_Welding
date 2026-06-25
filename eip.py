@@ -48,7 +48,6 @@ CIP 角色 (ODVA Volume 3, 与本模块代码实现一致):
 from __future__ import annotations
 
 import time
-import struct
 import logging
 from dataclasses import dataclass, field
 from enum import Enum

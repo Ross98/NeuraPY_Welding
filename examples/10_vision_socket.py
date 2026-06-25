@@ -11,7 +11,6 @@ Example 10: 视觉 socket 通讯 - 相机驱动机器人跟踪
   或运行模拟相机 (脚本末尾的 fake_camera_server)
 """
 import time
-import json
 import socket
 
 from neurapy.robot import Robot
@@ -88,7 +87,6 @@ def fake_camera_server(host: str = "127.0.0.1", port: int = 9001,
     try:
         for i in range(num_poses):
             # 模拟一条 sin 波焊缝 (X 方向移动, Y 方向摆动)
-            t = i * period
             pose = [
                 0.40 + 0.0001 * i,                  # X 缓慢前进
                 0.10 + 0.003 * (i % 20) / 20.0,     # Y 微摆

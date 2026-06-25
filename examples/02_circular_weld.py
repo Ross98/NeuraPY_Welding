@@ -8,7 +8,7 @@ move_circular 至少需要 3 个点确定一段圆弧。
 import time
 import numpy as np
 from neurapy.robot import Robot
-from welding_package import WeldingController, WeldingMode, WeldingProcess
+from welding_package import WeldingController, WeldingProcess
 from welding_package.parameters import WeaveParameters
 
 

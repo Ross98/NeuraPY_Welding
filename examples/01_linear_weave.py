@@ -9,7 +9,6 @@ Example 1: Linear Weave Weld (直线摆动焊)
 - 工具名称 'welding_torch' 需与 GUI 中创建的工具名一致
 """
 import time
-import numpy as np
 from neurapy.robot import Robot
 from welding_package import WeldingController, WeldingMode, WeldingProcess
 from welding_package.parameters import WeaveParameters

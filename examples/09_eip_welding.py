@@ -18,10 +18,9 @@ Example 9: EIP (Ethernet/IP) 焊接
   - 触发: 注册位姿触发的焊机函数, 控制器自动调用
 """
 import time
-import numpy as np
 from neurapy.robot import Robot
 from welding_package import (
-    WeldingController, WeldingProcess, WeldingMode,
+    WeldingProcess,
     EIPWeldingLink, EIPWeldingConfig, EIPWeldingTagMap,
     EIPBackedWeldingController,
 )
@@ -77,10 +76,6 @@ def example_polling_mode():
             raise RuntimeError("Arc ignition failed")
 
         # 5) 焊接运动
-        proc = WeldingProcess.linear_weave(
-            start, end,
-            speed=0.012,
-        )
         # 借助原有 WeldingController 跑工艺 (但用 EIP 替换起弧)
         # 这里直接调用 move_linear
         linear_prop = {
@@ -164,17 +159,16 @@ def example_pose_triggered_mode():
 
 def example_eip_backed_controller():
     """模式 3: 用 EIPBackedWeldingController 像 WeldingController 一样使用"""
-    from welding_package import WeldingProcess
     r = Robot("192.168.2.13")
     cfg = EIPWeldingConfig(yaml_path="/etc/neurapy/eip_welder.yaml")
     link = EIPWeldingLink(r, cfg)
     eip_ctrl = EIPBackedWeldingController(r, link, device_json="welder.json")
 
-    with eip_ctrl as ctrl:
+    with eip_ctrl:
         # 写参数
         link.write_job(job=12, current=180, voltage=22, wire_feed=5.0, gas_flow=15.0)
         # 走工艺 (起弧/收弧由 EIPBackedWeldingController 在 EIP 模式下自动完成)
-        proc = WeldingProcess.linear_weave(
+        WeldingProcess.linear_weave(
             [0.40, 0.10, 0.20, 3.1416, 0, 0],
             [0.60, 0.10, 0.20, 3.1416, 0, 0],
         )
