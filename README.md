@@ -26,10 +26,14 @@ welding_package/
   ├── parameters.py         # 工艺参数数据类
   ├── welding_controller.py # 焊接控制器 (Digital IO 模式)
   ├── processes.py          # 7 种工艺实现
-  ├── eip.py                # EtherNet/IP 适配 (CIP Scanner 模式)
+  ├── eip.py                # EtherNet/IP 适配 (CIP Scanner)
   ├── _interp.py            # 姿态插值 helper
-  ├── README.md             # 完整文档
   └── examples/             # 9 个示例
+
+tests/
+  ├── conftest.py              # pytest fixtures (mock Neurapy)
+  ├── test_welding_package.py  # 47 工艺测试
+  └── test_eip.py              # 15 EIP 测试
 ```
 
 ## License
