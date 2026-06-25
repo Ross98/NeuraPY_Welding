@@ -105,22 +105,23 @@ class WeldingController:
         if self._arc_on:
             return
         logger.info("Arc ON")
-        # 1) 提前送气
+        # 1) 提前送气 (gas 失败可尝试继续)
         try:
             self.r.io("set", io_name=self.arc.gas_valve_digital_output,
                       target_value=True)
         except Exception:
-            logger.debug("Gas valve DO not configured")
+            logger.warning("Gas valve IO failed — arc attempt without gas")
         time.sleep(self.arc.pre_flow_time)
 
-        # 2) 起弧信号 (焊机收到后建立电弧)
+        # 2) 起弧信号 — 失败则终止焊接
         try:
             self.r.io("set", io_name=self.arc.arc_on_digital_output,
                       target_value=True)
             self.r.io("set", io_name=self.arc.wire_feed_digital_output,
                       target_value=True)
-        except Exception:
-            logger.debug("Arc-on DO not configured")
+        except Exception as e:
+            logger.error("Arc-on IO failed — aborting arc_on: %s", e)
+            raise RuntimeError("Arc ignition IO failure") from e
 
         # 3) 等待电弧建立反馈
         if self.arc.arc_ok_digital_input:
@@ -131,8 +132,10 @@ class WeldingController:
                 )
                 if not ok:
                     raise RuntimeError("Arc ignition timeout")
+            except RuntimeError:
+                raise
             except Exception as e:
-                logger.debug("No arc-ok feedback: %s", e)
+                logger.debug("Arc-ok feedback read error: %s", e)
 
         time.sleep(self.arc.arc_on_delay)
         self._arc_on = True
@@ -143,25 +146,24 @@ class WeldingController:
         if not self._arc_on:
             return
         logger.info("Arc OFF")
-        # 1) 弧坑填充
         time.sleep(self.arc.crater_fill_time)
 
-        # 2) 停止送丝 & 起弧
+        # 停止送丝 & 起弧 (收弧阶段静默退化)
         try:
             self.r.io("set", io_name=self.arc.wire_feed_digital_output,
                       target_value=False)
             self.r.io("set", io_name=self.arc.arc_on_digital_output,
                       target_value=False)
         except Exception:
-            pass
+            logger.debug("Arc-off IO failed (cleanup only)")
 
-        # 3) 滞后停气
+        # 滞后停气
         time.sleep(self.arc.post_flow_time)
         try:
             self.r.io("set", io_name=self.arc.gas_valve_digital_output,
                       target_value=False)
         except Exception:
-            pass
+            logger.debug("Gas-off IO failed (cleanup only)")
 
         self._arc_on = False
         self._welding_active = False

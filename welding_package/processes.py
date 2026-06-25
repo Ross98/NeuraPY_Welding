@@ -20,7 +20,8 @@ from abc import ABC, abstractmethod
 from typing import List, Optional, Sequence
 
 from .parameters import (
-    WeaveParameters, MotionProfile, ArcParameters, SeamTrackParameters,
+    WeaveParameters, MotionProfile, ArcParameters,
+    SpotParameters, SeamTrackParameters,
 )
 from .welding_controller import WeldingController
 from ._interp import (
@@ -320,38 +321,36 @@ class SpotWeld(WeldingProcess):
     """
     name = "SpotWeld"
 
-    def __init__(self, pose: List[float], dwell: float = 1.0) -> None:
+    def __init__(self, pose: List[float], dwell: float = 1.0,
+                 spot: Optional[SpotParameters] = None) -> None:
         super().__init__(MotionProfile(speed=0.02))
         self.pose = list(pose)
         self.dwell = float(dwell)
+        self.spot = spot or SpotParameters()
 
     def execute(self, controller: WeldingController, *, dry_run: bool = False) -> None:
         r = controller.r
         approach = copy.deepcopy(self.pose)
         approach[2] += 0.05
         r.move_pose(approach)
-        # 接近
         r.move_linear(target_pose=[self.pose])
 
         if not dry_run:
-            # 1) 触发电极加压
+            s = self.spot
             try:
-                r.io("set", io_name="DO_SPOT_PRESS", target_value=True)
+                r.io("set", io_name=s.press_digital_output, target_value=True)
             except Exception:
-                pass
-            time.sleep(0.2)  # 等电极加压稳
-            # 2) 通电焊接
+                logger.debug("Spot press IO failed")
+            time.sleep(s.press_settle_time)
             try:
-                r.io("set", io_name="DO_SPOT_WELD", target_value=True)
+                r.io("set", io_name=s.weld_digital_output, target_value=True)
             except Exception:
-                pass
-            # 3) 维持 dwell
+                logger.debug("Spot weld IO failed")
             time.sleep(self.dwell)
-            # 4) 关焊接
             try:
-                r.io("set", io_name="DO_SPOT_WELD", target_value=False)
+                r.io("set", io_name=s.weld_digital_output, target_value=False)
                 time.sleep(0.1)
-                r.io("set", io_name="DO_SPOT_PRESS", target_value=False)
+                r.io("set", io_name=s.press_digital_output, target_value=False)
             except Exception:
                 pass
         r.move_pose(approach)

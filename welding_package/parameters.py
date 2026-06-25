@@ -86,6 +86,14 @@ class ArcParameters:
 
 
 @dataclass
+class SpotParameters:
+    """电阻点焊参数."""
+    press_digital_output: str = "DO_SPOT_PRESS"  # 电极加压信号
+    weld_digital_output: str = "DO_SPOT_WELD"    # 通电焊接信号
+    press_settle_time: float = 0.2               # s, 加压后等待稳定
+
+
+@dataclass
 class SeamTrackParameters:
     """焊缝跟踪参数 - 接触式 / 激光 / 电弧传感."""
     enabled: bool = True

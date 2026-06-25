@@ -477,9 +477,10 @@ def test_TC_ERR_006_io_missing_graceful(mock_robot, sample_poses):
     mock_robot.io = bad_io
 
     wc = WeldingController(mock_robot, weld_tool="torch", mode=WeldingMode.MIG_MAG)
-    # 不应抛致命异常
-    wc.arc_on()
-    assert wc._arc_on is True
+    # arc_on 在起弧 IO 失败时应抛 RuntimeError (修复: 不再静默退化)
+    with pytest.raises(RuntimeError, match="Arc ignition IO failure"):
+        wc.arc_on()
+    # arc_off 在无弧状态不抛 (reentrancy safe)
     wc.arc_off()
     assert wc._arc_on is False
 

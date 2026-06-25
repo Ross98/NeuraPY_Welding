@@ -26,7 +26,7 @@ except ImportError:
     _HAS_SCIPY = False
 
 
-def require_sciy() -> None:
+def require_scipy() -> None:
     """Raise a clear error if scipy is missing."""
     if not _HAS_SCIPY:
         raise ImportError(
