@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint Python sources
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install linters
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyflakes
+
+      - name: Run pyflakes
+        run: |
+          python -m pyflakes .
+
+  build:
+    name: Import smoke test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy scipy
+
+      - name: Verify modules parse
+        run: |
+          # 仓库不含 tests/, 但焊接包本身必须可被 Python 解析.
+          # 因为 neurapy 是私有 SDK, 运行时 import 会失败 - 我们用
+          # syntax-only 检查代替.
+          python -c "
+          import ast, pathlib
+          for p in pathlib.Path('.').rglob('*.py'):
+              if '__pycache__' in p.parts or '.git' in p.parts:
+                  continue
+              try:
+                  ast.parse(p.read_text(encoding='utf-8'))
+                  print(f'OK  {p}')
+              except SyntaxError as e:
+                  print(f'FAIL {p}: {e}')
+                  raise SystemExit(1)
+          "
+
+  # test:
+  #   name: pytest
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       os: [ubuntu-latest, windows-latest]
+  #       python-version: ["3.10", "3.11", "3.12"]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
+  #         cache: pip
+  #     - run: pip install numpy scipy pytest pytest-cov
+  #     # neurapy 是 Neura 私有 SDK, 不在 PyPI. tests/ 目录未上传.
+  #     # 启用本任务前请先推送 tests/ 目录.
+  #     - run: pytest --cov=. --cov-report=term -v
+  #       env:
+  #         PYTHONPATH: ${{ github.workspace }}

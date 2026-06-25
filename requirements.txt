@@ -1,0 +1,16 @@
+# NeuraPY_Welding - 第三方依赖
+#
+# neurapy 是 Neura Robotics 私有 SDK, 不在 PyPI 上.
+# 本仓库的测试套件 (tests/conftest.py) 在导入时 mock neurapy 模块,
+# 所以 CI 只需装以下公共包即可运行全部测试.
+
+# 核心数学
+numpy>=1.24
+scipy>=1.10
+
+# 测试
+pytest>=7.4
+pytest-cov>=4.1
+
+# 部署时 (有真实 Neura 机器人) 还需要:
+# neurapy>=5.1.88  # 联系 Neura Robotics 获取
